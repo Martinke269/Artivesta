@@ -1,0 +1,119 @@
+{
+  "project_name": "ArtMarketplace_MVP",
+  "description": "Simple PHP MVP marketplace with escrow-like Stripe PaymentIntent (manual capture), 20% commission, SQLite DB. Ready for Henosia AI processing.",
+  "version": "1.0.0",
+  "language": "php",
+  "web_framework": "none",
+  "database": "sqlite",
+  "commission_rate": 0.20,
+  "files": [
+    "config.php",
+    "init_db.php",
+    "index.php",
+    "artwork.php",
+    "create_order.php",
+    "webhook.php",
+    "admin.php",
+    "invoice.php",
+    "styles.css",
+    "README.md",
+    "db/schema.sql"
+  ],
+  "notes": "Replace Stripe keys in config.php, run init_db.php once, protect init_db.php after use. Admin uses HTTP Basic auth configured in config.php.",
+  "setup_steps": [
+    "1. Update Stripe keys in config.php (stripe_secret, stripe_publishable)",
+    "2. Set admin credentials in config.php (admin_user, admin_pass)",
+    "3. Run: php init_db.php",
+    "4. Protect or delete init_db.php after initialization",
+    "5. Start server: php -S localhost:8000",
+    "6. Access marketplace at http://localhost:8000",
+    "7. Access admin panel at http://localhost:8000/admin.php"
+  ],
+  "features": {
+    "escrow_payments": "Stripe PaymentIntent with manual capture",
+    "commission": "20% platform commission (configurable)",
+    "authentication": "HTTP Basic Auth for admin panel",
+    "database": "SQLite with 4 tables (users, artworks, orders, payouts)",
+    "ui_language": "Danish",
+    "no_dependencies": "Uses cURL for Stripe API, no Composer required"
+  },
+  "payment_flow": [
+    "1. Buyer submits email on artwork page",
+    "2. create_order.php creates Stripe PaymentIntent with capture_method=manual",
+    "3. Order stored with status=deposited (funds authorized but not captured)",
+    "4. Admin verifies order in admin panel (creates payout record)",
+    "5. Admin captures payment via Stripe API",
+    "6. Order status updated to captured, funds transferred"
+  ],
+  "database_schema": {
+    "users": {
+      "fields": ["id", "email", "name", "role"],
+      "primary_key": "id"
+    },
+    "artworks": {
+      "fields": ["id", "artist_name", "title", "description", "price_cents", "currency", "status"],
+      "primary_key": "id",
+      "defaults": {
+        "currency": "DKK",
+        "status": "listed"
+      }
+    },
+    "orders": {
+      "fields": ["id", "artwork_id", "buyer_email", "amount_cents", "currency", "status", "stripe_pi_id", "created_at"],
+      "primary_key": "id",
+      "defaults": {
+        "status": "pending"
+      }
+    },
+    "payouts": {
+      "fields": ["id", "order_id", "seller_name", "amount_cents", "commission_cents", "status", "created_at"],
+      "primary_key": "id",
+      "defaults": {
+        "status": "pending"
+      }
+    }
+  },
+  "configuration": {
+    "stripe_secret": "sk_test_xxx (replace with actual key)",
+    "stripe_publishable": "pk_test_xxx (replace with actual key)",
+    "stripe_webhook_secret": "whsec_xxx (optional, for webhook verification)",
+    "admin_user": "admin (change for production)",
+    "admin_pass": "changeme (MUST change for production)",
+    "db_path": "__DIR__ . '/data/artmarket.sqlite'",
+    "commission_rate": 0.20,
+    "base_url": "https://yourdomain.com/artmarket"
+  },
+  "security": {
+    "input_validation": "intval() for IDs, htmlspecialchars() for output",
+    "sql_injection_prevention": "PDO prepared statements",
+    "authentication": "HTTP Basic Auth for admin panel",
+    "stripe_security": "Manual capture for escrow protection"
+  },
+  "testing": {
+    "stripe_test_cards": {
+      "success": "4242 4242 4242 4242",
+      "decline": "4000 0000 0000 0002"
+    },
+    "test_flow": [
+      "1. Run init_db.php",
+      "2. Browse to index.php",
+      "3. Click artwork",
+      "4. Enter email and submit",
+      "5. Access admin.php",
+      "6. Verify order",
+      "7. Capture payment",
+      "8. View invoice"
+    ]
+  },
+  "deployment_checklist": [
+    "Update Stripe keys to production",
+    "Set strong admin password",
+    "Run init_db.php once",
+    "Protect or delete init_db.php",
+    "Configure Stripe webhook",
+    "Enable HTTPS",
+    "Set file permissions (data directory writable)",
+    "Test complete flow",
+    "Verify webhook working"
+  ]
+}
