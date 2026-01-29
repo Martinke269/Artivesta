@@ -2,11 +2,16 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { SiteHeader } from "@/components/layout/site-header"
+import { SiteFooter } from "@/components/layout/site-footer"
+import { HeroSection } from "@/components/home/hero-section"
+import { ArtistUSPSection } from "@/components/home/artist-usp-section"
+import { BuyerUSPSection } from "@/components/home/buyer-usp-section"
+import { FeaturesSection } from "@/components/home/features-section"
+import { SearchFilters } from "@/components/home/search-filters"
+import { ArtworkGrid } from "@/components/home/artwork-grid"
+import { CTASection } from "@/components/home/cta-section"
+import Script from "next/script"
 
 interface Artwork {
   id: string
@@ -17,6 +22,10 @@ interface Artwork {
   image_url: string
   status: string
   artist_id: string
+  category: string | null
+  style: string | null
+  tags: string[] | null
+  dominant_colors: string[] | null
   profiles: {
     name: string
   }
@@ -24,16 +33,25 @@ interface Artwork {
 
 export default function HomePage() {
   const [artworks, setArtworks] = useState<Artwork[]>([])
+  const [filteredArtworks, setFilteredArtworks] = useState<Artwork[]>([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState<string>("all")
+  const [selectedStyle, setSelectedStyle] = useState<string>("all")
+  const [selectedColor, setSelectedColor] = useState<string>("all")
+  const [priceRange, setPriceRange] = useState<string>("all")
   const supabase = createClient()
-  const router = useRouter()
 
   useEffect(() => {
     loadUser()
     loadArtworks()
   }, [])
+
+  useEffect(() => {
+    filterArtworks()
+  }, [artworks, searchQuery, selectedCategory, selectedStyle, selectedColor, priceRange])
 
   const loadUser = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -65,6 +83,7 @@ export default function HomePage() {
 
       if (error) throw error
       setArtworks(data || [])
+      setFilteredArtworks(data || [])
     } catch (error) {
       console.error("Error loading artworks:", error)
     } finally {
@@ -72,150 +91,173 @@ export default function HomePage() {
     }
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.refresh()
+  const filterArtworks = () => {
+    let filtered = [...artworks]
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(artwork => 
+        artwork.title.toLowerCase().includes(query) ||
+        artwork.description?.toLowerCase().includes(query) ||
+        artwork.profiles?.name.toLowerCase().includes(query) ||
+        artwork.tags?.some(tag => tag.toLowerCase().includes(query))
+      )
+    }
+
+    // Category filter
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(artwork => artwork.category === selectedCategory)
+    }
+
+    // Style filter
+    if (selectedStyle !== "all") {
+      filtered = filtered.filter(artwork => artwork.style === selectedStyle)
+    }
+
+    // Color filter
+    if (selectedColor !== "all") {
+      filtered = filtered.filter(artwork => 
+        artwork.dominant_colors?.includes(selectedColor)
+      )
+    }
+
+    // Price range filter
+    if (priceRange !== "all") {
+      filtered = filtered.filter(artwork => {
+        const price = artwork.price_cents / 100
+        switch (priceRange) {
+          case "0-5000":
+            return price <= 5000
+          case "5000-10000":
+            return price > 5000 && price <= 10000
+          case "10000-20000":
+            return price > 10000 && price <= 20000
+          case "20000+":
+            return price > 20000
+          default:
+            return true
+        }
+      })
+    }
+
+    setFilteredArtworks(filtered)
   }
 
-  const formatPrice = (cents: number, currency: string) => {
-    return new Intl.NumberFormat("da-DK", {
-      style: "currency",
-      currency: currency,
-    }).format(cents / 100)
+  const clearFilters = () => {
+    setSearchQuery("")
+    setSelectedCategory("all")
+    setSelectedStyle("all")
+    setSelectedColor("all")
+    setPriceRange("all")
+  }
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "ART IS SAFE",
+    "url": "https://www.artissafe.com",
+    "description": "Danmarks førende markedsplads for erhvervskunst. Køb original kunst direkte fra kunstnere med sikker escrow-betaling.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": "https://www.artissafe.com/?search={search_term_string}"
+      },
+      "query-input": "required name=search_term_string"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "ART IS SAFE",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.artissafe.com/logo.png"
+      }
+    }
+  }
+
+  const organizationData = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "ART IS SAFE",
+    "url": "https://www.artissafe.com",
+    "logo": "https://www.artissafe.com/logo.png",
+    "description": "Professionel kunstmarkedsplads for virksomheder og kunstnere",
+    "sameAs": [
+      "https://www.facebook.com/artissafe",
+      "https://www.instagram.com/artissafe",
+      "https://www.linkedin.com/company/artissafe"
+    ],
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "Customer Service",
+      "email": "support@artissafe.com",
+      "availableLanguage": ["Danish"]
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Kunstnerplatform</h1>
-          <div className="flex items-center gap-4">
-            {user ? (
-              <>
-                {userRole === "artist" && (
-                  <>
-                    <Link href="/upload">
-                      <Button variant="outline">Upload Kunst</Button>
-                    </Link>
-                    <Link href="/my-artworks">
-                      <Button variant="outline">Mine Kunstværker</Button>
-                    </Link>
-                  </>
-                )}
-                {userRole === "business" && (
-                  <Link href="/orders">
-                    <Button variant="outline">Mine Ordrer</Button>
-                  </Link>
-                )}
-                {userRole === "admin" && (
-                  <Link href="/admin">
-                    <Button variant="outline">Admin Panel</Button>
-                  </Link>
-                )}
-                <Button variant="ghost" onClick={handleLogout}>
-                  Log ud
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link href="/login">
-                  <Button variant="outline">Log ind</Button>
-                </Link>
-                <Link href="/signup">
-                  <Button>Opret konto</Button>
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+    <>
+      <Script
+        id="structured-data-website"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <Script
+        id="structured-data-organization"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationData) }}
+      />
+      
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+        <SiteHeader user={user} userRole={userRole} />
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Udforsk Kunst</h2>
-          <p className="text-gray-600">
-            Køb originale kunstværker direkte fra kunstnere
-          </p>
-        </div>
+      <SearchFilters
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        selectedStyle={selectedStyle}
+        setSelectedStyle={setSelectedStyle}
+        selectedColor={selectedColor}
+        setSelectedColor={setSelectedColor}
+        priceRange={priceRange}
+        setPriceRange={setPriceRange}
+        clearFilters={clearFilters}
+        filteredCount={filteredArtworks.length}
+        totalCount={artworks.length}
+      />
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <div className="h-64 bg-gray-200" />
-                <CardHeader>
-                  <div className="h-6 bg-gray-200 rounded mb-2" />
-                  <div className="h-4 bg-gray-200 rounded w-2/3" />
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        ) : artworks.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-gray-600 mb-4">
-                Ingen kunstværker tilgængelige endnu
-              </p>
-              {userRole === "artist" && (
-                <Link href="/upload">
-                  <Button>Upload dit første kunstværk</Button>
-                </Link>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {artworks.map((artwork) => (
-              <Card key={artwork.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="relative h-64 bg-gray-200">
-                  {artwork.image_url ? (
-                    <img
-                      src={artwork.image_url}
-                      alt={artwork.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400">
-                      Intet billede
-                    </div>
-                  )}
-                  <Badge className="absolute top-2 right-2">
-                    {artwork.status === "available" ? "Tilgængelig" : "Solgt"}
-                  </Badge>
-                </div>
-                <CardHeader>
-                  <CardTitle>{artwork.title}</CardTitle>
-                  <CardDescription>
-                    Af {artwork.profiles?.name || "Ukendt kunstner"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 line-clamp-2">
-                    {artwork.description}
-                  </p>
-                </CardContent>
-                <CardFooter className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">
-                    {formatPrice(artwork.price_cents, artwork.currency)}
-                  </span>
-                  {user && userRole === "business" && (
-                    <Link href={`/artwork/${artwork.id}`}>
-                      <Button>Køb nu</Button>
-                    </Link>
-                  )}
-                  {!user && (
-                    <Link href="/signup">
-                      <Button>Køb nu</Button>
-                    </Link>
-                  )}
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        )}
-      </main>
-    </div>
+      <HeroSection 
+        user={user} 
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+      />
+
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <ArtistUSPSection />
+          <BuyerUSPSection />
+        </div>
+      </div>
+
+      <div id="artwork-grid">
+        <ArtworkGrid
+          artworks={filteredArtworks}
+          loading={loading}
+          user={user}
+          userRole={userRole}
+          clearFilters={clearFilters}
+          totalCount={artworks.length}
+        />
+      </div>
+      
+      <FeaturesSection />
+
+      <CTASection />
+
+        <SiteFooter />
+      </div>
+    </>
   )
 }

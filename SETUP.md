@@ -1,12 +1,12 @@
-# Opsætningsguide - Kunstnerplatform
+# Opsætningsguide - ART IS SAFE
 
-Denne guide hjælper dig med at sætte kunstnerplatformen op fra bunden.
+Denne guide hjælper dig med at sætte ART IS SAFE platformen op fra bunden.
 
 ## Trin 1: Supabase Projekt
 
 1. Gå til [https://supabase.com](https://supabase.com) og opret en gratis konto
 2. Klik på "New Project"
-3. Vælg et navn til dit projekt (f.eks. "kunstnerplatform")
+3. Vælg et navn til dit projekt (f.eks. "artissafe")
 4. Vælg en database password (gem den sikkert!)
 5. Vælg en region tæt på dig (f.eks. "West EU (London)")
 6. Klik "Create new project" og vent på at projektet bliver oprettet

@@ -127,6 +127,7 @@ export default function OrdersPage() {
                     <TableHead>Status</TableHead>
                     <TableHead>Escrow</TableHead>
                     <TableHead>Dato</TableHead>
+                    <TableHead>Handlinger</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -157,6 +158,13 @@ export default function OrdersPage() {
                       </TableCell>
                       <TableCell>
                         {new Date(order.created_at).toLocaleDateString("da-DK")}
+                      </TableCell>
+                      <TableCell>
+                        <Link href={`/orders/${order.id}`}>
+                          <button className="text-blue-600 hover:underline text-sm">
+                            Se detaljer
+                          </button>
+                        </Link>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -1,4 +1,4 @@
-# Kunstnerplatform - Art Marketplace MVP
+# ART IS SAFE - Art Marketplace MVP
 
 En moderne platform hvor kunstnere kan uploade og sælge deres kunst til virksomheder med sikker escrow-betaling.
 
