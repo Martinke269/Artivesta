@@ -27,6 +27,7 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env
 
 # vercel
 .vercel
@@ -35,5 +36,17 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# IDEs
-/.idea/
+# PM2 logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { createClient } from '@/utils/supabase/server';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.artissafe.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.artissafe.dk';
   const supabase = await createClient();
 
   // Fetch all available artworks

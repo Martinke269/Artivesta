@@ -22,7 +22,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.artissafe.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.artissafe.dk'),
   title: {
     default: 'ART IS SAFE - Køb og sælg original kunst online',
     template: '%s | ART IS SAFE'

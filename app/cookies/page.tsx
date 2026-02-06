@@ -214,7 +214,7 @@ export default function CookiePolitikPage() {
           </p>
           <div className="bg-gray-50 p-6 rounded-lg">
             <p className="font-semibold mb-2">ART IS SAFE</p>
-            <p>E-mail: support@artissafe.com</p>
+            <p>E-mail: support@artissafe.dk</p>
             <p>Telefon: +45 XX XX XX XX</p>
           </div>
         </section>

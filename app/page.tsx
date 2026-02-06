@@ -156,13 +156,13 @@ export default function HomePage() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "ART IS SAFE",
-    "url": "https://www.artissafe.com",
+    "url": "https://www.artissafe.dk",
     "description": "Danmarks førende markedsplads for erhvervskunst. Køb original kunst direkte fra kunstnere med sikker escrow-betaling.",
     "potentialAction": {
       "@type": "SearchAction",
       "target": {
         "@type": "EntryPoint",
-        "urlTemplate": "https://www.artissafe.com/?search={search_term_string}"
+        "urlTemplate": "https://www.artissafe.dk/?search={search_term_string}"
       },
       "query-input": "required name=search_term_string"
     },
@@ -171,7 +171,7 @@ export default function HomePage() {
       "name": "ART IS SAFE",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://www.artissafe.com/logo.png"
+        "url": "https://www.artissafe.dk/logo.png"
       }
     }
   }
@@ -180,8 +180,8 @@ export default function HomePage() {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "ART IS SAFE",
-    "url": "https://www.artissafe.com",
-    "logo": "https://www.artissafe.com/logo.png",
+    "url": "https://www.artissafe.dk",
+    "logo": "https://www.artissafe.dk/logo.png",
     "description": "Professionel kunstmarkedsplads for virksomheder og kunstnere",
     "sameAs": [
       "https://www.facebook.com/artissafe",
@@ -191,7 +191,7 @@ export default function HomePage() {
     "contactPoint": {
       "@type": "ContactPoint",
       "contactType": "Customer Service",
-      "email": "support@artissafe.com",
+      "email": "support@artissafe.dk",
       "availableLanguage": ["Danish"]
     }
   }
