@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Palette } from "lucide-react"
 import Link from "next/link"
+import { motion } from "framer-motion"
 
 interface Artwork {
   id: string
@@ -55,13 +56,20 @@ export function ArtworkGrid({ artworks, loading, user, userRole, clearFilters, t
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i} className="animate-pulse border-purple-100">
-              <div className="h-64 md:h-80 bg-gradient-to-br from-purple-100 to-pink-100" />
-              <CardHeader>
-                <div className="h-5 md:h-6 bg-purple-100 rounded mb-2" />
-                <div className="h-3 md:h-4 bg-purple-100 rounded w-2/3" />
-              </CardHeader>
-            </Card>
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: i * 0.1 }}
+            >
+              <Card className="animate-pulse border-purple-100">
+                <div className="h-64 md:h-80 bg-gradient-to-br from-purple-100 to-pink-100" />
+                <CardHeader>
+                  <div className="h-5 md:h-6 bg-purple-100 rounded mb-2" />
+                  <div className="h-3 md:h-4 bg-purple-100 rounded w-2/3" />
+                </CardHeader>
+              </Card>
+            </motion.div>
           ))}
         </div>
       ) : artworks.length === 0 ? (
@@ -92,8 +100,14 @@ export function ArtworkGrid({ artworks, loading, user, userRole, clearFilters, t
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
-          {artworks.map((artwork) => (
-            <Card key={artwork.id} className="overflow-hidden hover:shadow-2xl transition-all duration-300 border-purple-100 bg-white/80 backdrop-blur group">
+          {artworks.map((artwork, index) => (
+            <motion.div
+              key={artwork.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: index * 0.05 }}
+            >
+              <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 border-purple-100 bg-white/80 backdrop-blur group hover:-translate-y-2">
               <div className="relative h-64 md:h-80 bg-gradient-to-br from-purple-100 to-pink-100 overflow-hidden">
                 {artwork.image_url ? (
                   <img
@@ -141,21 +155,22 @@ export function ArtworkGrid({ artworks, loading, user, userRole, clearFilters, t
                   {formatPrice(artwork.price_cents, artwork.currency)}
                 </span>
                 {user && userRole === "business" && (
-                  <Link href={`/artwork/${artwork.id}`}>
-                    <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                  <Link href={`/artwork/${artwork.id}`} className="group/button">
+                    <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-300 group-hover/button:scale-105">
                       Køb nu
                     </Button>
                   </Link>
                 )}
                 {!user && (
-                  <Link href="/signup">
-                    <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                  <Link href="/signup" className="group/button">
+                    <Button size="sm" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all duration-300 group-hover/button:scale-105">
                       Køb nu
                     </Button>
                   </Link>
                 )}
               </CardFooter>
             </Card>
+            </motion.div>
           ))}
         </div>
       )}

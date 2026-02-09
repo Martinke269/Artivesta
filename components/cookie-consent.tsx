@@ -64,21 +64,8 @@ export function CookieConsent() {
         setTimeout(() => setShowBanner(true), 1000)
       }
     } else {
-      // Load from localStorage for anonymous users
-      const consent = localStorage.getItem('artissafe_consent')
-      if (!consent) {
-        setTimeout(() => setShowBanner(true), 1000)
-      } else {
-        try {
-          const saved = JSON.parse(consent)
-          setPreferences(saved)
-          if (saved.analytics) {
-            enableAnalytics()
-          }
-        } catch (e) {
-          console.error('Failed to parse cookie consent', e)
-        }
-      }
+      // For anonymous users, always show banner (no localStorage fallback)
+      setTimeout(() => setShowBanner(true), 1000)
     }
   }
 
@@ -99,7 +86,7 @@ export function CookieConsent() {
 
   const savePreferences = async (prefs: CookiePreferences) => {
     if (userId) {
-      // Save to Supabase for authenticated users
+      // Save to Supabase for authenticated users only
       const { error } = await supabase
         .from('user_preferences')
         .upsert({
@@ -111,15 +98,11 @@ export function CookieConsent() {
 
       if (error) {
         console.error('Failed to save preferences to Supabase:', error)
-        // Fallback to localStorage if Supabase fails
-        localStorage.setItem('artissafe_consent', JSON.stringify(prefs))
       }
-    } else {
-      // Save to localStorage for anonymous users
-      localStorage.setItem('artissafe_consent', JSON.stringify(prefs))
     }
+    // Note: Anonymous users' preferences are not persisted - they'll see the banner on each visit
 
-    // Set consent cookie
+    // Set consent cookie for current session
     document.cookie = `artissafe_consent=true; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
     
     // Apply or remove analytics based on preference

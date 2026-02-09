@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/evaluate-prices",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/check-long-term-listings",
+      "schedule": "0 3 * * *"
     }
   ]
 }

@@ -13,54 +13,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { AlertCircle } from "lucide-react"
-
-const CATEGORIES = [
-  "Maleri",
-  "Fotografi",
-  "Skulptur",
-  "Digital kunst",
-  "Tegning",
-  "Grafik",
-  "Collage",
-  "Abstrakt",
-  "Andet"
-]
-
-const STYLES = [
-  "Impressionisme",
-  "Realisme",
-  "Ekspressionisme",
-  "Abstrakt",
-  "Surrealisme",
-  "Kubisme",
-  "Minimalisme",
-  "Pop art",
-  "Moderne",
-  "Klassisk"
-]
-
-const COLORS = [
-  { name: "Rød", value: "red" },
-  { name: "Blå", value: "blue" },
-  { name: "Grøn", value: "green" },
-  { name: "Gul", value: "yellow" },
-  { name: "Orange", value: "orange" },
-  { name: "Lilla", value: "purple" },
-  { name: "Pink", value: "pink" },
-  { name: "Sort", value: "black" },
-  { name: "Hvid", value: "white" },
-  { name: "Brun", value: "brown" },
-]
+import { ARTWORK_CATEGORIES, ARTWORK_STYLES, ARTWORK_COLORS, getArtTypesForCategory, ArtworkCategory } from "@/lib/artwork-constants"
+import { ArtworkDimensionsFields } from "@/components/artwork-dimensions-fields"
 
 export default function UploadPage() {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [price, setPrice] = useState("")
   const [imageUrl, setImageUrl] = useState("")
-  const [category, setCategory] = useState("")
+  const [videoUrl, setVideoUrl] = useState("")
+  const [category, setCategory] = useState<ArtworkCategory | "">("")
   const [style, setStyle] = useState("")
-  const [tags, setTags] = useState("")
+  const [selectedArtTypes, setSelectedArtTypes] = useState<string[]>([])
+  const [customTags, setCustomTags] = useState("")
   const [colors, setColors] = useState<string[]>([])
+  const [dimensions, setDimensions] = useState<Record<string, any>>({})
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [checkingProfile, setCheckingProfile] = useState(true)
@@ -119,11 +86,36 @@ export default function UploadPage() {
         throw new Error("Ugyldig pris")
       }
 
-      // Parse tags
-      const tagArray = tags
+      // Combine art types and custom tags
+      const customTagArray = customTags
         .split(",")
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0)
+      
+      const allTags = [...selectedArtTypes, ...customTagArray]
+
+      // Prepare dimension data - convert string values to appropriate types
+      const dimensionData: Record<string, any> = {}
+      Object.entries(dimensions).forEach(([key, value]) => {
+        if (value !== "" && value !== null && value !== undefined) {
+          // Convert numeric fields
+          if (key.includes("_cm") || key.includes("_kg") || key.includes("_sqm") || key === "element_count") {
+            const numValue = parseFloat(value as string)
+            if (!isNaN(numValue)) {
+              dimensionData[key] = numValue
+            }
+          } else if (key === "price_per_sqm_cents") {
+            const numValue = Math.round(parseFloat(value as string) * 100)
+            if (!isNaN(numValue)) {
+              dimensionData[key] = numValue
+            }
+          } else if (key === "acoustic_effect") {
+            dimensionData[key] = !!value
+          } else {
+            dimensionData[key] = value
+          }
+        }
+      })
 
       const { error: insertError } = await supabase
         .from("artworks")
@@ -134,11 +126,13 @@ export default function UploadPage() {
           price_cents: priceCents,
           currency: "DKK",
           image_url: imageUrl,
+          video_url: videoUrl || null,
           status: "available",
           category: category || null,
           style: style || null,
-          tags: tagArray.length > 0 ? tagArray : null,
+          tags: allTags.length > 0 ? allTags : null,
           dominant_colors: colors.length > 0 ? colors : null,
+          ...dimensionData,
         })
 
       if (insertError) throw insertError
@@ -268,50 +262,91 @@ export default function UploadPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="category">Kategori</Label>
-                <Select value={category} onValueChange={setCategory}>
+                <Label htmlFor="category">Hovedkategori *</Label>
+                <Select 
+                  value={category} 
+                  onValueChange={(value) => {
+                    setCategory(value as ArtworkCategory)
+                    // Reset dimensions and art types when category changes
+                    setDimensions({})
+                    setSelectedArtTypes([])
+                  }}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Vælg kategori" />
+                    <SelectValue placeholder="Vælg hovedkategori" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map(cat => (
+                    {ARTWORK_CATEGORIES.map(cat => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-sm text-gray-500">
+                  Vælg én hovedkategori for dit kunstværk
+                </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="style">Stilart</Label>
-                <Select value={style} onValueChange={setStyle}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Vælg stilart" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STYLES.map(s => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
+              {/* Dynamic dimension fields based on category */}
+              {category && (
+                <ArtworkDimensionsFields
+                  category={category}
+                  dimensions={dimensions}
+                  onDimensionChange={(name, value) => {
+                    setDimensions(prev => ({ ...prev, [name]: value }))
+                  }}
+                />
+              )}
+
+              {/* Art Types - shown only when category is selected */}
+              {category && (
+                <div className="space-y-2">
+                  <Label>Kunstarter (vælg relevante)</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto border rounded-lg p-4">
+                    {getArtTypesForCategory(category).map(artType => (
+                      <div key={artType} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={artType}
+                          checked={selectedArtTypes.includes(artType)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedArtTypes([...selectedArtTypes, artType])
+                            } else {
+                              setSelectedArtTypes(selectedArtTypes.filter(t => t !== artType))
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={artType}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {artType}
+                        </label>
+                      </div>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Vælg de kunstarter der passer til dit værk
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
-                <Label htmlFor="tags">Tags (kommasepareret)</Label>
+                <Label htmlFor="customTags">Ekstra tags (valgfri, kommasepareret)</Label>
                 <Input
-                  id="tags"
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                  placeholder="moderne, abstrakt, farverig"
+                  id="customTags"
+                  value={customTags}
+                  onChange={(e) => setCustomTags(e.target.value)}
+                  placeholder="moderne, farverig, eksklusiv"
                 />
                 <p className="text-sm text-gray-500">
-                  Tilføj tags adskilt med komma for bedre søgbarhed
+                  Tilføj yderligere beskrivende tags adskilt med komma
                 </p>
               </div>
 
               <div className="space-y-2">
                 <Label>Dominerende farver</Label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {COLORS.map(color => (
+                  {ARTWORK_COLORS.map(color => (
                     <div key={color.value} className="flex items-center space-x-2">
                       <Checkbox
                         id={color.value}
@@ -362,6 +397,20 @@ export default function UploadPage() {
                   </div>
                 </div>
               )}
+
+              <div className="space-y-2">
+                <Label htmlFor="videoUrl">Video URL (valgfri)</Label>
+                <Input
+                  id="videoUrl"
+                  type="url"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                />
+                <p className="text-sm text-gray-500">
+                  Indsæt et YouTube-link for at vise en video af dit kunstværk
+                </p>
+              </div>
 
               <div className="flex gap-4">
                 <Button type="submit" disabled={loading} className="flex-1">

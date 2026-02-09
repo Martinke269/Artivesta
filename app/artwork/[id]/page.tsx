@@ -1,14 +1,7 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { createClient } from "@/utils/supabase/client"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { Metadata } from "next"
+import { notFound } from "next/navigation"
+import { createClient } from "@/utils/supabase/server"
+import ArtworkDetailClient from "./artwork-detail-client"
 
 interface Artwork {
   id: string
@@ -17,256 +10,172 @@ interface Artwork {
   price_cents: number
   currency: string
   image_url: string
+  video_url: string | null
   status: string
   artist_id: string
+  category: string | null
+  style: string | null
+  width_cm: number | null
+  height_cm: number | null
+  depth_cm: number | null
+  created_year: number | null
   profiles: {
     name: string
     email: string
   }
 }
 
-export default function ArtworkDetailPage() {
-  const params = useParams()
-  const router = useRouter()
-  const [artwork, setArtwork] = useState<Artwork | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [purchasing, setPurchasing] = useState(false)
-  const [error, setError] = useState("")
-  const supabase = createClient()
-
-  useEffect(() => {
-    loadArtwork()
-  }, [params.id])
-
-  const loadArtwork = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("artworks")
-        .select(`
-          *,
-          profiles:artist_id (name, email)
-        `)
-        .eq("id", params.id)
-        .single()
-
-      if (error) throw error
-      setArtwork(data)
-    } catch (error) {
-      console.error("Error loading artwork:", error)
-      setError("Kunne ikke indlæse kunstværk")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handlePurchase = async () => {
-    if (!artwork) return
-    
-    setError("")
-    setPurchasing(true)
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push("/login")
-        return
-      }
-
-      // Create order
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          artwork_id: artwork.id,
-          buyer_id: user.id,
-          seller_id: artwork.artist_id,
-          amount_cents: artwork.price_cents,
-          currency: artwork.currency,
-          status: "pending",
-          escrow_status: "held",
-        })
-        .select()
-        .single()
-
-      if (orderError) throw orderError
-
-      // Create payout request with 20% commission
-      const commissionCents = Math.round(artwork.price_cents * 0.2)
-      const netAmountCents = artwork.price_cents - commissionCents
-
-      const { error: payoutError } = await supabase
-        .from("payouts")
-        .insert({
-          order_id: order.id,
-          seller_id: artwork.artist_id,
-          amount_cents: artwork.price_cents,
-          commission_cents: commissionCents,
-          net_amount_cents: netAmountCents,
-          status: "pending",
-        })
-
-      if (payoutError) throw payoutError
-
-      // Update artwork status
-      const { error: updateError } = await supabase
-        .from("artworks")
-        .update({ status: "sold" })
-        .eq("id", artwork.id)
-
-      if (updateError) throw updateError
-
-      // In a real app, this would redirect to payment
-      router.push("/orders")
-    } catch (error: any) {
-      setError(error.message)
-    } finally {
-      setPurchasing(false)
-    }
-  }
-
-  const formatPrice = (cents: number, currency: string) => {
-    return new Intl.NumberFormat("da-DK", {
-      style: "currency",
-      currency: currency,
-    }).format(cents / 100)
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b">
-          <div className="container mx-auto px-4 py-4">
-            <Link href="/" className="text-2xl font-bold">
-              Kunstnerplatform
-            </Link>
-          </div>
-        </header>
-        <main className="container mx-auto px-4 py-8">
-          <Card className="animate-pulse">
-            <div className="h-96 bg-gray-200" />
-            <CardHeader>
-              <div className="h-8 bg-gray-200 rounded mb-2" />
-              <div className="h-4 bg-gray-200 rounded w-1/3" />
-            </CardHeader>
-          </Card>
-        </main>
-      </div>
-    )
-  }
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const supabase = await createClient()
+  
+  const { data: artwork } = await supabase
+    .from("artworks")
+    .select(`
+      *,
+      profiles:artist_id (name, email)
+    `)
+    .eq("id", params.id)
+    .single()
 
   if (!artwork) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b">
-          <div className="container mx-auto px-4 py-4">
-            <Link href="/" className="text-2xl font-bold">
-              Kunstnerplatform
-            </Link>
-          </div>
-        </header>
-        <main className="container mx-auto px-4 py-8">
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-gray-600 mb-4">Kunstværk ikke fundet</p>
-              <Link href="/">
-                <Button>Tilbage til forsiden</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
-    )
+    return {
+      title: "Kunstværk ikke fundet",
+    }
+  }
+
+  const price = new Intl.NumberFormat("da-DK", {
+    style: "currency",
+    currency: artwork.currency,
+  }).format(artwork.price_cents / 100)
+
+  const dimensions = artwork.width_cm && artwork.height_cm 
+    ? `${artwork.width_cm}x${artwork.height_cm}${artwork.depth_cm ? `x${artwork.depth_cm}` : ''} cm`
+    : ''
+
+  const description = artwork.description 
+    ? `${artwork.description.substring(0, 155)}...`
+    : `${artwork.title} af ${artwork.profiles?.name}. Original kunst til salg for ${price}. ${dimensions}`
+
+  return {
+    title: `${artwork.title} - ${artwork.profiles?.name}`,
+    description,
+    keywords: [
+      artwork.title,
+      artwork.profiles?.name,
+      'original kunst',
+      'køb kunst',
+      artwork.category,
+      artwork.style,
+      'dansk kunst',
+      'kunstværk til salg'
+    ].filter(Boolean),
+    openGraph: {
+      title: `${artwork.title} - ${artwork.profiles?.name}`,
+      description,
+      images: artwork.image_url ? [
+        {
+          url: artwork.image_url,
+          width: 1200,
+          height: 630,
+          alt: `${artwork.title} af ${artwork.profiles?.name}`,
+        }
+      ] : [],
+      type: 'website',
+      locale: 'da_DK',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${artwork.title} - ${artwork.profiles?.name}`,
+      description,
+      images: artwork.image_url ? [artwork.image_url] : [],
+    },
+    alternates: {
+      canonical: `/artwork/${params.id}`,
+    },
+  }
+}
+
+export default async function ArtworkDetailPage({ params }: { params: { id: string } }) {
+  const supabase = await createClient()
+  
+  const { data: artwork, error } = await supabase
+    .from("artworks")
+    .select(`
+      *,
+      profiles:artist_id (name, email)
+    `)
+    .eq("id", params.id)
+    .single()
+
+  if (error || !artwork) {
+    notFound()
+  }
+
+  // Generate structured data for SEO
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.artissafe.dk'
+  
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": artwork.title,
+    "description": artwork.description || `${artwork.title} af ${artwork.profiles?.name}`,
+    "image": artwork.image_url,
+    "brand": {
+      "@type": "Brand",
+      "name": artwork.profiles?.name
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": `${baseUrl}/artwork/${artwork.id}`,
+      "priceCurrency": artwork.currency,
+      "price": (artwork.price_cents / 100).toFixed(2),
+      "availability": artwork.status === "available" 
+        ? "https://schema.org/InStock" 
+        : "https://schema.org/OutOfStock",
+      "seller": {
+        "@type": "Person",
+        "name": artwork.profiles?.name
+      }
+    },
+    "category": artwork.category || "Kunst",
+    "artMedium": artwork.style || "Mixed Media",
+    "artform": "Painting",
+    "creator": {
+      "@type": "Person",
+      "name": artwork.profiles?.name
+    }
+  }
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Forside",
+        "item": baseUrl
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": artwork.title,
+        "item": `${baseUrl}/artwork/${artwork.id}`
+      }
+    ]
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
-          <Link href="/" className="text-2xl font-bold">
-            Kunstnerplatform
-          </Link>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <Link href="/" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-6">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Tilbage til oversigt
-        </Link>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Image */}
-          <div className="relative aspect-square bg-gray-200 rounded-lg overflow-hidden">
-            {artwork.image_url ? (
-              <img
-                src={artwork.image_url}
-                alt={artwork.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                Intet billede
-              </div>
-            )}
-          </div>
-
-          {/* Details */}
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-start justify-between mb-2">
-                <h1 className="text-4xl font-bold">{artwork.title}</h1>
-                <Badge variant={artwork.status === "available" ? "default" : "secondary"}>
-                  {artwork.status === "available" ? "Tilgængelig" : "Solgt"}
-                </Badge>
-              </div>
-              <p className="text-lg text-gray-600">
-                Af {artwork.profiles?.name || "Ukendt kunstner"}
-              </p>
-            </div>
-
-            {artwork.description && (
-              <div>
-                <h2 className="text-lg font-semibold mb-2">Beskrivelse</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">
-                  {artwork.description}
-                </p>
-              </div>
-            )}
-
-            <div className="border-t pt-6">
-              <div className="flex items-center justify-between mb-6">
-                <span className="text-3xl font-bold">
-                  {formatPrice(artwork.price_cents, artwork.currency)}
-                </span>
-              </div>
-
-              {error && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {artwork.status === "available" ? (
-                <Button
-                  size="lg"
-                  className="w-full"
-                  onClick={handlePurchase}
-                  disabled={purchasing}
-                >
-                  {purchasing ? "Behandler..." : "Køb nu"}
-                </Button>
-              ) : (
-                <Button size="lg" className="w-full" disabled>
-                  Ikke tilgængelig
-                </Button>
-              )}
-
-              <p className="text-sm text-gray-500 mt-4 text-center">
-                Betalingen håndteres sikkert gennem vores escrow-system
-              </p>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <ArtworkDetailClient artwork={artwork} />
+    </>
   )
 }

@@ -4,13 +4,12 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { SiteHeader } from "@/components/layout/site-header"
 import { SiteFooter } from "@/components/layout/site-footer"
-import { HeroSection } from "@/components/home/hero-section"
-import { ArtistUSPSection } from "@/components/home/artist-usp-section"
-import { BuyerUSPSection } from "@/components/home/buyer-usp-section"
-import { FeaturesSection } from "@/components/home/features-section"
+import { HeroSectionV2 } from "@/components/home/hero-section-v2"
+import { USPSection } from "@/components/home/usp-section"
+import { BusinessSection } from "@/components/home/business-section"
+import { ArtistTeaserSection } from "@/components/home/artist-teaser-section"
 import { SearchFilters } from "@/components/home/search-filters"
 import { ArtworkGrid } from "@/components/home/artwork-grid"
-import { CTASection } from "@/components/home/cta-section"
 import Script from "next/script"
 
 interface Artwork {
@@ -42,6 +41,9 @@ export default function HomePage() {
   const [selectedStyle, setSelectedStyle] = useState<string>("all")
   const [selectedColor, setSelectedColor] = useState<string>("all")
   const [priceRange, setPriceRange] = useState<string>("all")
+  const [availableCategories, setAvailableCategories] = useState<string[]>([])
+  const [availableStyles, setAvailableStyles] = useState<string[]>([])
+  const [availableColors, setAvailableColors] = useState<string[]>([])
   const supabase = createClient()
 
   useEffect(() => {
@@ -84,6 +86,25 @@ export default function HomePage() {
       if (error) throw error
       setArtworks(data || [])
       setFilteredArtworks(data || [])
+      
+      // Collect unique categories, styles, and colors from actual artworks
+      if (data) {
+        const categories = new Set<string>()
+        const styles = new Set<string>()
+        const colors = new Set<string>()
+        
+        data.forEach(artwork => {
+          if (artwork.category) categories.add(artwork.category)
+          if (artwork.style) styles.add(artwork.style)
+          if (artwork.dominant_colors) {
+            artwork.dominant_colors.forEach((color: string) => colors.add(color))
+          }
+        })
+        
+        setAvailableCategories(Array.from(categories).sort())
+        setAvailableStyles(Array.from(styles).sort())
+        setAvailableColors(Array.from(colors).sort())
+      }
     } catch (error) {
       console.error("Error loading artworks:", error)
     } finally {
@@ -209,52 +230,46 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationData) }}
       />
       
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+      <div className="min-h-screen bg-white">
         <SiteHeader user={user} userRole={userRole} />
 
-      <SearchFilters
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-        selectedStyle={selectedStyle}
-        setSelectedStyle={setSelectedStyle}
-        selectedColor={selectedColor}
-        setSelectedColor={setSelectedColor}
-        priceRange={priceRange}
-        setPriceRange={setPriceRange}
-        clearFilters={clearFilters}
-        filteredCount={filteredArtworks.length}
-        totalCount={artworks.length}
-      />
+        <HeroSectionV2 user={user} />
 
-      <HeroSection 
-        user={user} 
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-      />
+        <USPSection />
 
-      <div className="container mx-auto px-4 py-8 md:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <ArtistUSPSection />
-          <BuyerUSPSection />
-        </div>
-      </div>
+        <BusinessSection />
 
-      <div id="artwork-grid">
-        <ArtworkGrid
-          artworks={filteredArtworks}
-          loading={loading}
-          user={user}
-          userRole={userRole}
+        <ArtistTeaserSection />
+
+        <SearchFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          selectedStyle={selectedStyle}
+          setSelectedStyle={setSelectedStyle}
+          selectedColor={selectedColor}
+          setSelectedColor={setSelectedColor}
+          priceRange={priceRange}
+          setPriceRange={setPriceRange}
           clearFilters={clearFilters}
+          filteredCount={filteredArtworks.length}
           totalCount={artworks.length}
+          availableCategories={availableCategories}
+          availableStyles={availableStyles}
+          availableColors={availableColors}
         />
-      </div>
-      
-      <FeaturesSection />
 
-      <CTASection />
+        <div id="artwork-grid">
+          <ArtworkGrid
+            artworks={filteredArtworks}
+            loading={loading}
+            user={user}
+            userRole={userRole}
+            clearFilters={clearFilters}
+            totalCount={artworks.length}
+          />
+        </div>
 
         <SiteFooter />
       </div>

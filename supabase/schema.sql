@@ -21,6 +21,24 @@ CREATE TABLE IF NOT EXISTS artworks (
   currency TEXT DEFAULT 'DKK',
   image_url TEXT,
   status TEXT DEFAULT 'available' CHECK (status IN ('available', 'sold', 'reserved')),
+  category TEXT,
+  style TEXT,
+  tags TEXT[],
+  dominant_colors TEXT[],
+  -- Dimension fields (dynamically used based on category)
+  width_cm NUMERIC,
+  height_cm NUMERIC,
+  depth_cm NUMERIC,
+  weight_kg NUMERIC,
+  area_sqm NUMERIC,
+  pixel_dimensions TEXT,
+  aspect_ratio TEXT,
+  file_format TEXT,
+  element_count INTEGER,
+  mounting_requirements TEXT,
+  acoustic_effect BOOLEAN DEFAULT false,
+  price_per_sqm_cents INTEGER,
+  custom_dimensions_description TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -165,6 +183,10 @@ CREATE POLICY "System can create invoices"
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_artworks_artist_id ON artworks(artist_id);
 CREATE INDEX IF NOT EXISTS idx_artworks_status ON artworks(status);
+CREATE INDEX IF NOT EXISTS idx_artworks_category ON artworks(category);
+CREATE INDEX IF NOT EXISTS idx_artworks_style ON artworks(style);
+CREATE INDEX IF NOT EXISTS idx_artworks_tags ON artworks USING GIN(tags);
+CREATE INDEX IF NOT EXISTS idx_artworks_colors ON artworks USING GIN(dominant_colors);
 CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON orders(buyer_id);
 CREATE INDEX IF NOT EXISTS idx_orders_seller_id ON orders(seller_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
