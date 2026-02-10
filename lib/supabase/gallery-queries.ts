@@ -293,3 +293,197 @@ export async function getAIInsights(
 
   return insights
 }
+
+// ============================================================================
+// GALLERY ARTWORKS QUERIES
+// ============================================================================
+
+export interface GalleryArtwork {
+  id: string
+  title: string
+  artist_name: string
+  artist_id: string
+  status: 'available' | 'sold' | 'reserved' | 'draft' | 'pending_approval' | 'price_change_pending_approval'
+  price_cents: number
+  image_url: string | null
+  category: string
+  created_at: string
+  views: number
+  inquiries: number
+  has_price_change_pending: boolean
+  has_unusual_removal_flag: boolean
+  has_90_day_flag: boolean
+  has_metadata_issues: boolean
+  days_active: number
+}
+
+export interface ArtworkFilters {
+  status?: string[]
+  hasPriceChangePending?: boolean
+  hasUnusualRemovalFlag?: boolean
+  has90DayFlag?: boolean
+  searchQuery?: string
+}
+
+export async function getGalleryArtworks(
+  supabase: SupabaseClient,
+  galleryId: string,
+  filters?: ArtworkFilters
+): Promise<GalleryArtwork[]> {
+  // Get gallery artists
+  const { data: galleryArtists } = await supabase
+    .from('gallery_artists')
+    .select('artist_id')
+    .eq('gallery_id', galleryId)
+    .eq('status', 'active')
+
+  const artistIds = galleryArtists?.map((ga) => ga.artist_id) || []
+
+  if (artistIds.length === 0) {
+    return []
+  }
+
+  // Build artworks query
+  let query = supabase
+    .from('artworks')
+    .select(`
+      id,
+      title,
+      artist_id,
+      status,
+      price_cents,
+      image_url,
+      category,
+      created_at,
+      profiles:artist_id (
+        full_name
+      )
+    `)
+    .in('artist_id', artistIds)
+
+  // Apply filters
+  if (filters?.status && filters.status.length > 0) {
+    query = query.in('status', filters.status)
+  }
+
+  if (filters?.searchQuery) {
+    query = query.ilike('title', `%${filters.searchQuery}%`)
+  }
+
+  query = query.order('created_at', { ascending: false })
+
+  const { data: artworks } = await query
+
+  if (!artworks) return []
+
+  // Get analytics and AI flags for each artwork
+  const artworksWithData = await Promise.all(
+    artworks.map(async (artwork: any) => {
+      // Get analytics
+      const { data: analytics } = await supabase
+        .from('artwork_analytics')
+        .select('view_count')
+        .eq('artwork_id', artwork.id)
+        .single()
+
+      // Get inquiry count from buyer_interest
+      const { count: inquiryCount } = await supabase
+        .from('buyer_interest')
+        .select('*', { count: 'exact', head: true })
+        .eq('artwork_id', artwork.id)
+        .eq('interest_type', 'inquiry')
+
+      // Check for pending price change
+      const { data: priceChange } = await supabase
+        .from('price_history')
+        .select('id')
+        .eq('artwork_id', artwork.id)
+        .eq('approval_status', 'pending')
+        .single()
+
+      // Check for unusual removal flag
+      const { data: removalFlag } = await supabase
+        .from('artwork_removal_events')
+        .select('id')
+        .eq('artwork_id', artwork.id)
+        .eq('unusual_removal', true)
+        .single()
+
+      // Check for 90-day diagnostic
+      const daysActive = Math.floor(
+        (new Date().getTime() - new Date(artwork.created_at).getTime()) / (1000 * 60 * 60 * 24)
+      )
+      const has90DayFlag = daysActive >= 90
+
+      // Check for metadata issues
+      const { count: metadataIssues } = await supabase
+        .from('gallery_metadata_validations')
+        .select('*', { count: 'exact', head: true })
+        .eq('artwork_id', artwork.id)
+        .eq('gallery_id', galleryId)
+        .in('severity', ['critical', 'warning'])
+
+      return {
+        id: artwork.id,
+        title: artwork.title,
+        artist_name: artwork.profiles?.full_name || 'Unknown Artist',
+        artist_id: artwork.artist_id,
+        status: artwork.status,
+        price_cents: artwork.price_cents,
+        image_url: artwork.image_url,
+        category: artwork.category,
+        created_at: artwork.created_at,
+        views: analytics?.view_count || 0,
+        inquiries: inquiryCount || 0,
+        has_price_change_pending: !!priceChange,
+        has_unusual_removal_flag: !!removalFlag,
+        has_90_day_flag: has90DayFlag,
+        has_metadata_issues: (metadataIssues || 0) > 0,
+        days_active: daysActive,
+      }
+    })
+  )
+
+  // Apply AI flag filters
+  let filteredArtworks = artworksWithData
+
+  if (filters?.hasPriceChangePending) {
+    filteredArtworks = filteredArtworks.filter((a) => a.has_price_change_pending)
+  }
+
+  if (filters?.hasUnusualRemovalFlag) {
+    filteredArtworks = filteredArtworks.filter((a) => a.has_unusual_removal_flag)
+  }
+
+  if (filters?.has90DayFlag) {
+    filteredArtworks = filteredArtworks.filter((a) => a.has_90_day_flag)
+  }
+
+  return filteredArtworks
+}
+
+export async function updateArtworkStatus(
+  supabase: SupabaseClient,
+  artworkId: string,
+  status: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('artworks')
+    .update({ status })
+    .eq('id', artworkId)
+
+  if (error) throw error
+}
+
+export async function bulkUpdateArtworkStatus(
+  supabase: SupabaseClient,
+  artworkIds: string[],
+  status: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('artworks')
+    .update({ status })
+    .in('id', artworkIds)
+
+  if (error) throw error
+}
