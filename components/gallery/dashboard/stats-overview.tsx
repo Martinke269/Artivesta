@@ -12,7 +12,7 @@ export function StatsOverview({ stats }: StatsOverviewProps) {
       title: 'Kunstnere',
       value: stats.totalArtists,
       icon: Users,
-      description: 'Aktive kunstnere',
+      description: `${stats.pendingInvitations} afventende invitationer`,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
     },
@@ -20,7 +20,7 @@ export function StatsOverview({ stats }: StatsOverviewProps) {
       title: 'Kunstværker',
       value: stats.totalArtworks,
       icon: Image,
-      description: `${stats.activeListings} aktive`,
+      description: `${stats.activeListings} aktive listings`,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
     },
@@ -40,30 +40,14 @@ export function StatsOverview({ stats }: StatsOverviewProps) {
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50',
     },
-    {
-      title: 'Invitationer',
-      value: stats.pendingInvitations,
-      icon: Mail,
-      description: 'Afventer svar',
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-    },
-    {
-      title: 'Aktive listings',
-      value: stats.activeListings,
-      icon: Eye,
-      description: 'Synlige værker',
-      color: 'text-indigo-600',
-      bgColor: 'bg-indigo-50',
-    },
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {statCards.map((stat) => {
         const Icon = stat.icon
         return (
-          <Card key={stat.title}>
+          <Card key={stat.title} className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
                 {stat.title}

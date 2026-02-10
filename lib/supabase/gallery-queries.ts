@@ -27,6 +27,16 @@ export interface ActivityItem {
   metadata?: Record<string, any>
 }
 
+export interface AIInsight {
+  id: string
+  type: 'opportunity' | 'warning' | 'trend' | 'recommendation'
+  title: string
+  description: string
+  impact: 'high' | 'medium' | 'low'
+  actionUrl?: string
+  actionLabel?: string
+}
+
 export async function getGalleryStats(
   supabase: SupabaseClient,
   galleryId: string
@@ -196,4 +206,90 @@ export async function getRecentActivity(
   activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
   return activities.slice(0, 10)
+}
+
+export async function getAIInsights(
+  supabase: SupabaseClient,
+  galleryId: string
+): Promise<AIInsight[]> {
+  const insights: AIInsight[] = []
+
+  // Get gallery stats for analysis
+  const stats = await getGalleryStats(supabase, galleryId)
+  
+  // Check for pending invitations
+  if (stats.pendingInvitations > 0) {
+    insights.push({
+      id: 'pending-invitations',
+      type: 'recommendation',
+      title: 'Afventende invitationer',
+      description: `Du har ${stats.pendingInvitations} kunstner${stats.pendingInvitations > 1 ? 'e' : ''} der endnu ikke har accepteret din invitation. Overvej at sende en påmindelse.`,
+      impact: 'medium',
+      actionUrl: `/gallery/${galleryId}/invitations`,
+      actionLabel: 'Se invitationer',
+    })
+  }
+
+  // Check for low artist count
+  if (stats.totalArtists < 3) {
+    insights.push({
+      id: 'grow-roster',
+      type: 'opportunity',
+      title: 'Udvid dit kunstner-roster',
+      description: 'Gallerier med flere kunstnere har typisk 3x højere salg. Overvej at invitere flere kunstnere til dit galleri.',
+      impact: 'high',
+      actionUrl: `/gallery/${galleryId}/invite`,
+      actionLabel: 'Inviter kunstner',
+    })
+  }
+
+  // Check for inactive listings
+  if (stats.totalArtworks > 0 && stats.activeListings < stats.totalArtworks * 0.5) {
+    insights.push({
+      id: 'inactive-listings',
+      type: 'warning',
+      title: 'Mange inaktive værker',
+      description: `Kun ${stats.activeListings} ud af ${stats.totalArtworks} værker er aktive. Aktiver flere værker for at øge synlighed og salg.`,
+      impact: 'high',
+      actionUrl: `/gallery/${galleryId}/artworks`,
+      actionLabel: 'Administrer værker',
+    })
+  }
+
+  // Check for no artworks
+  if (stats.totalArtworks === 0 && stats.totalArtists > 0) {
+    insights.push({
+      id: 'no-artworks',
+      type: 'warning',
+      title: 'Ingen kunstværker endnu',
+      description: 'Dine kunstnere har ikke uploadet værker endnu. Kontakt dem for at komme i gang.',
+      impact: 'high',
+      actionUrl: `/gallery/${galleryId}/artists`,
+      actionLabel: 'Se kunstnere',
+    })
+  }
+
+  // Positive trend for sales
+  if (stats.totalSales > 5) {
+    insights.push({
+      id: 'sales-momentum',
+      type: 'trend',
+      title: 'Stærk salgsperformance',
+      description: `Dit galleri har gennemført ${stats.totalSales} salg med en samlet omsætning på ${stats.totalRevenue.toLocaleString('da-DK')} kr. Fortsæt det gode arbejde!`,
+      impact: 'low',
+    })
+  }
+
+  // Recommendation for first sale
+  if (stats.totalSales === 0 && stats.activeListings > 0) {
+    insights.push({
+      id: 'first-sale',
+      type: 'recommendation',
+      title: 'Klar til dit første salg',
+      description: `Du har ${stats.activeListings} aktive værker. Promover dit galleri på sociale medier for at tiltrække købere.`,
+      impact: 'medium',
+    })
+  }
+
+  return insights
 }
