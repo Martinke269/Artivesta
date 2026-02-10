@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table'
 import { Eye } from 'lucide-react'
 import { BuyerLeaseDetail } from '@/lib/supabase/buyer-leasing-queries'
-import { getInsuranceDaysRemaining } from '@/lib/supabase/buyer-insurance-queries'
+import { getInsuranceDaysRemaining } from '@/lib/insurance-utils'
 
 interface InsuranceTableProps {
   records: BuyerLeaseDetail[]

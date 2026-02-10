@@ -17,7 +17,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
-import { BuyerInsuranceFilters } from '@/lib/supabase/buyer-insurance-queries'
+import type { BuyerInsuranceFilters } from '@/lib/supabase/buyer-insurance-types'
 
 interface InsuranceFiltersProps {
   filters: BuyerInsuranceFilters

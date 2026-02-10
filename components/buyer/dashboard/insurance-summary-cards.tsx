@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Shield, AlertTriangle, XCircle, FileWarning } from 'lucide-react'
-import { BuyerInsuranceStats } from '@/lib/supabase/buyer-insurance-queries'
+import type { BuyerInsuranceStats } from '@/lib/supabase/buyer-insurance-types'
 
 interface InsuranceSummaryCardsProps {
   stats: BuyerInsuranceStats

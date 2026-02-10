@@ -22,7 +22,7 @@ import {
   DollarSign,
 } from 'lucide-react'
 import { BuyerLeaseDetail } from '@/lib/supabase/buyer-leasing-queries'
-import { getInsuranceDaysRemaining } from '@/lib/supabase/buyer-insurance-queries'
+import { getInsuranceDaysRemaining } from '@/lib/insurance-utils'
 
 interface InsuranceDetailsDrawerProps {
   record: BuyerLeaseDetail | null

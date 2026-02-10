@@ -1,9 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import {
-  getGalleryLeases,
-  getGalleryArtists,
-} from '@/lib/supabase/gallery-leasing-queries'
+import { getGalleryLeases } from '@/lib/supabase/gallery-leasing-queries'
+import { getGalleryArtists } from '@/lib/supabase/gallery-queries'
 import { LeasingPageClient } from './leasing-page-client'
 
 export const metadata = {
@@ -36,24 +34,10 @@ export default async function LeasingPage() {
   }
 
   // Fetch leasing data
-  const { data: leases, error: leasesError } = await getGalleryLeases(
-    supabase,
-    gallery.id
-  )
-
-  if (leasesError) {
-    console.error('Error fetching leases:', leasesError)
-  }
+  const leases = await getGalleryLeases(gallery.id)
 
   // Fetch artists for filter
-  const { data: artists, error: artistsError } = await getGalleryArtists(
-    supabase,
-    gallery.id
-  )
-
-  if (artistsError) {
-    console.error('Error fetching artists:', artistsError)
-  }
+  const artists = await getGalleryArtists(supabase, gallery.id)
 
   return (
     <LeasingPageClient

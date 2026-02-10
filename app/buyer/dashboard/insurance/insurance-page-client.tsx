@@ -5,11 +5,11 @@ import { InsuranceSummaryCards } from '@/components/buyer/dashboard/insurance-su
 import { InsuranceFilters } from '@/components/buyer/dashboard/insurance-filters'
 import { InsuranceTable } from '@/components/buyer/dashboard/insurance-table'
 import { InsuranceDetailsDrawer } from '@/components/buyer/dashboard/insurance-details-drawer'
-import {
+import type {
   BuyerInsuranceStats,
   BuyerInsuranceFilters,
-} from '@/lib/supabase/buyer-insurance-queries'
-import { BuyerLeaseDetail } from '@/lib/supabase/buyer-leasing-queries'
+} from '@/lib/supabase/buyer-insurance-types'
+import type { BuyerLeaseDetail } from '@/lib/supabase/buyer-leasing-queries'
 
 interface InsurancePageClientProps {
   initialStats: BuyerInsuranceStats

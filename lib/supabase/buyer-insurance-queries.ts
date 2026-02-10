@@ -1,28 +1,13 @@
 import { createClient } from '@/utils/supabase/server'
 import { BuyerLeaseDetail } from './buyer-leasing-queries'
+import type { BuyerInsuranceStats, BuyerInsuranceFilters } from './buyer-insurance-types'
 
 // ============================================================================
 // BUYER INSURANCE PAGE QUERIES
 // ============================================================================
 
-export interface BuyerInsuranceStats {
-  totalInsured: number
-  expiringSoon: number // within 60 days
-  expired: number
-  missing: number
-}
-
-export interface BuyerInsuranceFilters {
-  search?: string
-  status?: string // valid, expiring_soon, expired, missing
-  insuranceHolder?: string // gallery, buyer, external, missing
-  galleryId?: string
-  dateFrom?: string
-  dateTo?: string
-  priceMin?: number
-  priceMax?: number
-  sortBy?: 'newest' | 'expiring_soon' | 'status'
-}
+// Re-export types for convenience
+export type { BuyerInsuranceStats, BuyerInsuranceFilters }
 
 /**
  * Get insurance statistics for buyer
@@ -308,18 +293,4 @@ export async function getBuyerInsuranceGalleries(
     id,
     name,
   }))
-}
-
-/**
- * Calculate days until insurance expires
- */
-export function getInsuranceDaysRemaining(coverageEnd: string | null): number {
-  if (!coverageEnd) return 0
-
-  const endDate = new Date(coverageEnd)
-  const today = new Date()
-  return Math.max(
-    0,
-    Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-  )
 }
