@@ -6,11 +6,23 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
+  // Read environment variables inside the function (lazy initialization)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY || 
+                      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // If environment variables are missing, skip Supabase initialization
+  // This allows the build to succeed even without env vars
+  if (!supabaseUrl || !supabaseKey) {
+    console.warn('Supabase environment variables missing in middleware. Skipping session update.')
+    return supabaseResponse
+  }
+
   // With Fluid compute, don't put this client in a global environment
   // variable. Always create a new one on each request.
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {
