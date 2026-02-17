@@ -194,7 +194,7 @@ export function CookieConsent() {
             
             <p className="text-xs text-gray-500 mt-3 text-center">
               Læs mere i vores{' '}
-              <Link href="/cookies" className="text-purple-600 hover:underline">
+              <Link href="/cookies" className="text-purple-600 hover:underline" target="_blank" rel="noopener noreferrer">
                 cookie-politik
               </Link>
             </p>

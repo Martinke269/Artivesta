@@ -17,13 +17,13 @@ export function SiteFooter() {
           <div className="space-y-3">
             <h4 className="font-semibold text-gray-900 text-sm">For virksomheder</h4>
             <nav className="flex flex-col gap-2 text-sm text-gray-600">
-              <Link href="/for-virksomheder" className="hover:text-gray-900 transition-colors">
+              <Link href="/for-virksomheder" className="hover:text-gray-900 transition-colors" target="_blank" rel="noopener noreferrer">
                 Oversigt
               </Link>
-              <Link href="/kuratering" className="hover:text-gray-900 transition-colors">
+              <Link href="/kuratering" className="hover:text-gray-900 transition-colors" target="_blank" rel="noopener noreferrer">
                 Kuratering
               </Link>
-              <Link href="/custom-kunst" className="hover:text-gray-900 transition-colors">
+              <Link href="/custom-kunst" className="hover:text-gray-900 transition-colors" target="_blank" rel="noopener noreferrer">
                 Custom kunst
               </Link>
             </nav>
@@ -33,10 +33,10 @@ export function SiteFooter() {
           <div className="space-y-3">
             <h4 className="font-semibold text-gray-900 text-sm">For kunstnere</h4>
             <nav className="flex flex-col gap-2 text-sm text-gray-600">
-              <Link href="/for-kunstnere" className="hover:text-gray-900 transition-colors">
+              <Link href="/for-kunstnere" className="hover:text-gray-900 transition-colors" target="_blank" rel="noopener noreferrer">
                 Bliv kunstner
               </Link>
-              <Link href="/escrow" className="hover:text-gray-900 transition-colors">
+              <Link href="/escrow" className="hover:text-gray-900 transition-colors" target="_blank" rel="noopener noreferrer">
                 Escrow-betaling
               </Link>
             </nav>
@@ -46,13 +46,13 @@ export function SiteFooter() {
           <div className="space-y-3">
             <h4 className="font-semibold text-gray-900 text-sm">Juridisk</h4>
             <nav className="flex flex-col gap-2 text-sm text-gray-600">
-              <Link href="/betingelser" className="hover:text-gray-900 transition-colors">
+              <Link href="/betingelser" className="hover:text-gray-900 transition-colors" target="_blank" rel="noopener noreferrer">
                 Handelsbetingelser
               </Link>
-              <Link href="/cookies" className="hover:text-gray-900 transition-colors">
+              <Link href="/cookies" className="hover:text-gray-900 transition-colors" target="_blank" rel="noopener noreferrer">
                 Cookie-politik
               </Link>
-              <Link href="/privatlivspolitik" className="hover:text-gray-900 transition-colors">
+              <Link href="/privatlivspolitik" className="hover:text-gray-900 transition-colors" target="_blank" rel="noopener noreferrer">
                 Privatlivspolitik
               </Link>
             </nav>

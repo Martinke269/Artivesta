@@ -23,7 +23,7 @@ export function CTASection() {
           </div>
           <p className="text-sm text-purple-100 mt-4">
             Ved at oprette en konto accepterer du vores{' '}
-            <Link href="/betingelser" className="underline hover:text-white">
+            <Link href="/betingelser" className="underline hover:text-white" target="_blank" rel="noopener noreferrer">
               handelsbetingelser
             </Link>
           </p>

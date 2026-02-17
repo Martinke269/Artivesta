@@ -7,16 +7,26 @@ import Stripe from 'stripe';
 
 export const dynamic = 'force-dynamic';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-01-28.clover',
-});
-
 /**
  * POST /api/stripe/escrow/release
  * Releases escrow funds for a lease or order
  */
 export async function POST(request: NextRequest) {
   try {
+    // Validate Stripe environment variable
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey) {
+      return NextResponse.json(
+        { error: 'Stripe configuration missing' },
+        { status: 500 }
+      );
+    }
+
+    // Create Stripe client inside handler (not at module level)
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2026-01-28.clover',
+    });
+
     const supabase = await createClient();
 
     // Check authentication
