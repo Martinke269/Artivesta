@@ -5,14 +5,25 @@
 
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
-}
+let stripeInstance: Stripe | null = null;
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2026-01-28.clover',
-  typescript: true,
-});
+/**
+ * Get or create Stripe instance (lazy initialization)
+ * This prevents build-time errors when STRIPE_SECRET_KEY is not available
+ */
+function getStripe(): Stripe {
+  if (!stripeInstance) {
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
+      throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
+    }
+    stripeInstance = new Stripe(stripeKey, {
+      apiVersion: '2026-01-28.clover',
+      typescript: true,
+    });
+  }
+  return stripeInstance;
+}
 
 /**
  * Create a Stripe Connect Standard Account
@@ -22,6 +33,7 @@ export async function createConnectAccount(params: {
   country?: string;
   businessType?: 'individual' | 'company';
 }) {
+  const stripe = getStripe();
   const account = await stripe.accounts.create({
     type: 'standard',
     email: params.email,
@@ -41,6 +53,7 @@ export async function createAccountLink(params: {
   returnUrl: string;
   type?: 'account_onboarding' | 'account_update';
 }) {
+  const stripe = getStripe();
   const accountLink = await stripe.accountLinks.create({
     account: params.accountId,
     refresh_url: params.refreshUrl,
@@ -55,6 +68,7 @@ export async function createAccountLink(params: {
  * Retrieve account details
  */
 export async function getAccountDetails(accountId: string) {
+  const stripe = getStripe();
   const account = await stripe.accounts.retrieve(accountId);
   return account;
 }
@@ -87,6 +101,7 @@ export async function createTransfer(params: {
   description?: string;
   metadata?: Record<string, string>;
 }) {
+  const stripe = getStripe();
   const transfer = await stripe.transfers.create({
     amount: params.amount,
     currency: params.currency,
@@ -108,6 +123,7 @@ export async function createPaymentIntentWithFee(params: {
   connectedAccountId: string;
   metadata?: Record<string, string>;
 }) {
+  const stripe = getStripe();
   const paymentIntent = await stripe.paymentIntents.create({
     amount: params.amount,
     currency: params.currency,
@@ -129,6 +145,7 @@ export async function listPayouts(params: {
   limit?: number;
   startingAfter?: string;
 }) {
+  const stripe = getStripe();
   const payouts = await stripe.payouts.list(
     {
       limit: params.limit || 10,
@@ -149,6 +166,7 @@ export async function getPayout(params: {
   payoutId: string;
   accountId: string;
 }) {
+  const stripe = getStripe();
   const payout = await stripe.payouts.retrieve(params.payoutId, {
     stripeAccount: params.accountId,
   });
@@ -164,6 +182,7 @@ export async function listTransfers(params: {
   limit?: number;
   startingAfter?: string;
 }) {
+  const stripe = getStripe();
   const transfers = await stripe.transfers.list({
     destination: params.destination,
     limit: params.limit || 10,
@@ -177,6 +196,7 @@ export async function listTransfers(params: {
  * Retrieve a specific transfer
  */
 export async function getTransfer(transferId: string) {
+  const stripe = getStripe();
   const transfer = await stripe.transfers.retrieve(transferId);
   return transfer;
 }
@@ -190,6 +210,7 @@ export async function createRefund(params: {
   reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer';
   metadata?: Record<string, string>;
 }) {
+  const stripe = getStripe();
   const refund = await stripe.refunds.create({
     charge: params.chargeId,
     amount: params.amount,
@@ -209,6 +230,7 @@ export async function reverseTransfer(params: {
   description?: string;
   metadata?: Record<string, string>;
 }) {
+  const stripe = getStripe();
   const reversal = await stripe.transfers.createReversal(params.transferId, {
     amount: params.amount,
     description: params.description,
@@ -226,6 +248,7 @@ export function constructWebhookEvent(
   signature: string,
   webhookSecret: string
 ) {
+  const stripe = getStripe();
   const event = stripe.webhooks.constructEvent(
     payload,
     signature,
