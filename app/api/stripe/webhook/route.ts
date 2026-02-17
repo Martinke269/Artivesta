@@ -3,20 +3,29 @@ import { headers } from 'next/headers';
 import Stripe from 'stripe';
 import { constructWebhookEvent } from '@/lib/stripe/stripe-connect';
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-// Initialize Supabase with service role for webhook processing
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
+/**
+ * Creates a Supabase admin client for webhook processing
+ * This is done inside the handler to avoid build-time initialization
+ */
+function getSupabaseAdmin(): SupabaseClient {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase configuration: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  }
+
+  return createClient(supabaseUrl, supabaseKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
-  }
-);
+  });
+}
 
 /**
  * POST /api/stripe/webhook
@@ -24,6 +33,8 @@ const supabaseAdmin = createClient(
  */
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Supabase client inside the handler
+    const supabaseAdmin = getSupabaseAdmin();
     const body = await request.text();
     const headersList = await headers();
     const signature = headersList.get('stripe-signature');
@@ -60,79 +71,79 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       // Account events
       case 'account.updated':
-        await handleAccountUpdated(event.data.object as Stripe.Account);
+        await handleAccountUpdated(supabaseAdmin, event.data.object as Stripe.Account);
         break;
 
       case 'account.external_account.created':
       case 'account.external_account.updated':
       case 'account.external_account.deleted':
-        await handleExternalAccountChange(event);
+        await handleExternalAccountChange(supabaseAdmin, event);
         break;
 
       // Payout events
       case 'payout.paid':
-        await handlePayoutPaid(event.data.object as Stripe.Payout);
+        await handlePayoutPaid(supabaseAdmin, event.data.object as Stripe.Payout);
         break;
 
       case 'payout.failed':
-        await handlePayoutFailed(event.data.object as Stripe.Payout);
+        await handlePayoutFailed(supabaseAdmin, event.data.object as Stripe.Payout);
         break;
 
       case 'payout.canceled':
-        await handlePayoutCanceled(event.data.object as Stripe.Payout);
+        await handlePayoutCanceled(supabaseAdmin, event.data.object as Stripe.Payout);
         break;
 
       // Transfer events
       case 'transfer.created':
-        await handleTransferCreated(event.data.object as Stripe.Transfer);
+        await handleTransferCreated(supabaseAdmin, event.data.object as Stripe.Transfer);
         break;
 
       case 'transfer.updated':
-        await handleTransferUpdated(event.data.object as Stripe.Transfer);
+        await handleTransferUpdated(supabaseAdmin, event.data.object as Stripe.Transfer);
         break;
 
       case 'transfer.reversed':
-        await handleTransferReversed(event.data.object as Stripe.Transfer);
+        await handleTransferReversed(supabaseAdmin, event.data.object as Stripe.Transfer);
         break;
 
       // Payment Intent events (for escrow system)
       case 'payment_intent.succeeded':
-        await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
+        await handlePaymentIntentSucceeded(supabaseAdmin, event.data.object as Stripe.PaymentIntent);
         break;
 
       case 'payment_intent.payment_failed':
-        await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
+        await handlePaymentIntentFailed(supabaseAdmin, event.data.object as Stripe.PaymentIntent);
         break;
 
       // Charge events
       case 'charge.succeeded':
-        await handleChargeSucceeded(event.data.object as Stripe.Charge);
+        await handleChargeSucceeded(supabaseAdmin, event.data.object as Stripe.Charge);
         break;
 
       case 'charge.failed':
-        await handleChargeFailed(event.data.object as Stripe.Charge);
+        await handleChargeFailed(supabaseAdmin, event.data.object as Stripe.Charge);
         break;
 
       case 'charge.refunded':
-        await handleChargeRefunded(event.data.object as Stripe.Charge);
+        await handleChargeRefunded(supabaseAdmin, event.data.object as Stripe.Charge);
         break;
 
       // Dispute events
       case 'charge.dispute.created':
-        await handleDisputeCreated(event.data.object as Stripe.Dispute);
+        await handleDisputeCreated(supabaseAdmin, event.data.object as Stripe.Dispute);
         break;
 
       case 'charge.dispute.closed':
-        await handleDisputeClosed(event.data.object as Stripe.Dispute);
+        await handleDisputeClosed(supabaseAdmin, event.data.object as Stripe.Dispute);
         break;
 
       // Application fee events
       case 'application_fee.created':
-        await handleApplicationFeeCreated(event.data.object as Stripe.ApplicationFee);
+        await handleApplicationFeeCreated(supabaseAdmin, event.data.object as Stripe.ApplicationFee);
         break;
 
       case 'application_fee.refunded':
-        await handleApplicationFeeRefunded(event.data.object as Stripe.ApplicationFee);
+        await handleApplicationFeeRefunded(supabaseAdmin, event.data.object as Stripe.ApplicationFee);
         break;
 
       default:
@@ -160,7 +171,7 @@ export async function POST(request: NextRequest) {
 
 // Event handlers
 
-async function handleAccountUpdated(account: Stripe.Account) {
+async function handleAccountUpdated(supabaseAdmin: SupabaseClient, account: Stripe.Account) {
   const { data: stripeAccount } = await supabaseAdmin
     .from('stripe_accounts')
     .select('gallery_id')
@@ -197,7 +208,7 @@ async function handleAccountUpdated(account: Stripe.Account) {
   }
 }
 
-async function handleExternalAccountChange(event: Stripe.Event) {
+async function handleExternalAccountChange(supabaseAdmin: SupabaseClient, event: Stripe.Event) {
   const account = event.account;
   if (!account) return;
 
@@ -218,7 +229,7 @@ async function handleExternalAccountChange(event: Stripe.Event) {
   }
 }
 
-async function handlePayoutPaid(payout: Stripe.Payout) {
+async function handlePayoutPaid(supabaseAdmin: SupabaseClient, payout: Stripe.Payout) {
   const { data: stripeAccount } = await supabaseAdmin
     .from('stripe_accounts')
     .select('gallery_id')
@@ -240,7 +251,7 @@ async function handlePayoutPaid(payout: Stripe.Payout) {
   });
 }
 
-async function handlePayoutFailed(payout: Stripe.Payout) {
+async function handlePayoutFailed(supabaseAdmin: SupabaseClient, payout: Stripe.Payout) {
   const { data: stripeAccount } = await supabaseAdmin
     .from('stripe_accounts')
     .select('gallery_id')
@@ -268,7 +279,7 @@ async function handlePayoutFailed(payout: Stripe.Payout) {
   });
 }
 
-async function handlePayoutCanceled(payout: Stripe.Payout) {
+async function handlePayoutCanceled(supabaseAdmin: SupabaseClient, payout: Stripe.Payout) {
   const { data: stripeAccount } = await supabaseAdmin
     .from('stripe_accounts')
     .select('gallery_id')
@@ -283,7 +294,7 @@ async function handlePayoutCanceled(payout: Stripe.Payout) {
     .eq('payout_id', payout.id);
 }
 
-async function handleTransferCreated(transfer: Stripe.Transfer) {
+async function handleTransferCreated(supabaseAdmin: SupabaseClient, transfer: Stripe.Transfer) {
   const { data: stripeAccount } = await supabaseAdmin
     .from('stripe_accounts')
     .select('gallery_id')
@@ -304,7 +315,7 @@ async function handleTransferCreated(transfer: Stripe.Transfer) {
   });
 }
 
-async function handleTransferUpdated(transfer: Stripe.Transfer) {
+async function handleTransferUpdated(supabaseAdmin: SupabaseClient, transfer: Stripe.Transfer) {
   await supabaseAdmin
     .from('stripe_transfers')
     .update({
@@ -315,7 +326,7 @@ async function handleTransferUpdated(transfer: Stripe.Transfer) {
     .eq('transfer_id', transfer.id);
 }
 
-async function handleTransferReversed(transfer: Stripe.Transfer) {
+async function handleTransferReversed(supabaseAdmin: SupabaseClient, transfer: Stripe.Transfer) {
   const { data: stripeAccount } = await supabaseAdmin
     .from('stripe_accounts')
     .select('gallery_id')
@@ -338,7 +349,7 @@ async function handleTransferReversed(transfer: Stripe.Transfer) {
   });
 }
 
-async function handleChargeSucceeded(charge: Stripe.Charge) {
+async function handleChargeSucceeded(supabaseAdmin: SupabaseClient, charge: Stripe.Charge) {
   // Update order status if this charge is linked to an order
   if (charge.metadata?.order_id) {
     await supabaseAdmin
@@ -351,7 +362,7 @@ async function handleChargeSucceeded(charge: Stripe.Charge) {
   }
 }
 
-async function handleChargeFailed(charge: Stripe.Charge) {
+async function handleChargeFailed(supabaseAdmin: SupabaseClient, charge: Stripe.Charge) {
   if (charge.metadata?.order_id) {
     await supabaseAdmin
       .from('orders')
@@ -363,7 +374,7 @@ async function handleChargeFailed(charge: Stripe.Charge) {
   }
 }
 
-async function handleChargeRefunded(charge: Stripe.Charge) {
+async function handleChargeRefunded(supabaseAdmin: SupabaseClient, charge: Stripe.Charge) {
   if (charge.metadata?.order_id) {
     await supabaseAdmin
       .from('orders')
@@ -375,7 +386,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   }
 }
 
-async function handleDisputeCreated(dispute: Stripe.Dispute) {
+async function handleDisputeCreated(supabaseAdmin: SupabaseClient, dispute: Stripe.Dispute) {
   const charge = dispute.charge as string;
   
   // Find the order associated with this charge
@@ -396,7 +407,7 @@ async function handleDisputeCreated(dispute: Stripe.Dispute) {
   }
 }
 
-async function handleDisputeClosed(dispute: Stripe.Dispute) {
+async function handleDisputeClosed(supabaseAdmin: SupabaseClient, dispute: Stripe.Dispute) {
   const charge = dispute.charge as string;
   
   const { data: order } = await supabaseAdmin
@@ -416,7 +427,7 @@ async function handleDisputeClosed(dispute: Stripe.Dispute) {
   }
 }
 
-async function handleApplicationFeeCreated(fee: Stripe.ApplicationFee) {
+async function handleApplicationFeeCreated(supabaseAdmin: SupabaseClient, fee: Stripe.ApplicationFee) {
   const { data: order } = await supabaseAdmin
     .from('orders')
     .select('gallery_id, id')
@@ -435,14 +446,14 @@ async function handleApplicationFeeCreated(fee: Stripe.ApplicationFee) {
   }
 }
 
-async function handleApplicationFeeRefunded(fee: Stripe.ApplicationFee) {
+async function handleApplicationFeeRefunded(supabaseAdmin: SupabaseClient, fee: Stripe.ApplicationFee) {
   await supabaseAdmin
     .from('stripe_application_fees')
     .update({ refunded: true, refunded_at: new Date().toISOString() })
     .eq('fee_id', fee.id);
 }
 
-async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+async function handlePaymentIntentSucceeded(supabaseAdmin: SupabaseClient, paymentIntent: Stripe.PaymentIntent) {
   // Check if this payment is for an offer (escrow system)
   const offerId = paymentIntent.metadata?.offer_id;
   
@@ -459,7 +470,7 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
   }
 }
 
-async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
+async function handlePaymentIntentFailed(supabaseAdmin: SupabaseClient, paymentIntent: Stripe.PaymentIntent) {
   const offerId = paymentIntent.metadata?.offer_id;
   
   if (offerId) {
