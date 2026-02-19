@@ -14,6 +14,10 @@ export async function GET(request: NextRequest) {
   if (token_hash && type) {
     const supabase = await createClient()
 
+    if (!supabase) {
+      return new Response("Supabase client not available", { status: 500 })
+    }
+
     const { error } = await supabase.auth.verifyOtp({
       type,
       token_hash,

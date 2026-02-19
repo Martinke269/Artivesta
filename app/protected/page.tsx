@@ -6,6 +6,10 @@ import { createClient } from '@/lib/supabase/server'
 export default async function ProtectedPage() {
   const supabase = await createClient()
 
+  if (!supabase) {
+    redirect('/auth/login')
+  }
+
   const { data, error } = await supabase.auth.getClaims()
   if (error || !data?.claims) {
     redirect('/auth/login')
