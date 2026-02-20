@@ -28,6 +28,12 @@ export function UpdatePasswordForm({ className, ...props }: React.ComponentProps
     setIsLoading(true)
     setError(null)
 
+    if (!supabase) {
+      setError('Unable to initialize authentication. Please try again later.')
+      setIsLoading(false)
+      return
+    }
+
     try {
       const { error } = await supabase.auth.updateUser({ password })
       if (error) throw error

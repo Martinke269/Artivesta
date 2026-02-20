@@ -31,6 +31,12 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
     setIsLoading(true)
     setError(null)
 
+    if (!supabase) {
+      setError('Unable to initialize authentication. Please try again later.')
+      setIsLoading(false)
+      return
+    }
+
     if (password !== repeatPassword) {
       setError('Passwords do not match')
       setIsLoading(false)
