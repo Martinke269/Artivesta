@@ -59,6 +59,31 @@ export function SiteFooter() {
           </div>
         </div>
 
+        {/* Partnere sektion */}
+        <div className="py-8 border-t border-gray-200">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
+            <span className="text-sm text-gray-600 font-medium">Partnere:</span>
+            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
+              <a 
+                href="https://www.regnskabsanalysen.dk" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors underline"
+              >
+                Regnskabsanalysen.dk
+              </a>
+              <a 
+                href="https://www.klartilbanken.dk" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors underline"
+              >
+                Klartilbanken.dk
+              </a>
+            </div>
+          </div>
+        </div>
+
         <div className="pt-8 border-t border-gray-200">
           <p className="text-sm text-gray-600 text-center">
             © 2026 ART IS SAFE. Alle rettigheder forbeholdes.
