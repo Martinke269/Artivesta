@@ -26,17 +26,11 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
     setIsLoading(true)
     setError(null)
 
-    if (!supabase) {
-      setError('Unable to initialize authentication. Please try again later.')
-      setIsLoading(false)
-      return
-    }
-
     try {
+      const supabase = createClient()
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
