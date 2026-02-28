@@ -1,10 +1,18 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Palette, Building2, Sparkles, User } from "lucide-react"
+import { Palette, Building2, Sparkles, User, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface SiteHeaderProps {
   user: any
@@ -32,6 +40,68 @@ export function SiteHeader({ user, userRole }: SiteHeaderProps) {
           </Link>
           
           <div className="flex items-center gap-2 md:gap-4">
+            {/* B2B Partners Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="hidden md:flex hover:bg-purple-50 transition-all duration-300">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  B2B Partnere
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Vores økosystem</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <a
+                    href="https://www.regnskabsanalysen.dk"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between cursor-pointer"
+                  >
+                    <span>Regnskabsanalysen.dk</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a
+                    href="https://www.oppmysales.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between cursor-pointer"
+                  >
+                    <span>OppMySales.com</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                  Support værktøjer
+                </DropdownMenuLabel>
+                <DropdownMenuItem asChild>
+                  <a
+                    href="https://www.klartilbanken.dk"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between cursor-pointer"
+                  >
+                    <span>Klartilbanken.dk</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a
+                    href="https://www.budgetberegneren.dk"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between cursor-pointer"
+                  >
+                    <span>Budgetberegneren.dk</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {user ? (
               <>
                 {userRole === "artist" && (

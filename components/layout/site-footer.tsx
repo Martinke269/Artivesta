@@ -80,6 +80,14 @@ export function SiteFooter() {
               >
                 Klartilbanken.dk
               </a>
+              <a 
+                href="https://www.oppmysales.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm text-gray-600 hover:text-gray-900 transition-colors underline"
+              >
+                OppMySales.com
+              </a>
             </div>
           </div>
         </div>
